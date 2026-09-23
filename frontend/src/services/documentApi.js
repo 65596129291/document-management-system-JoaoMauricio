@@ -28,19 +28,17 @@ async function uploadDocument(file, owner) {
     formData.append('owner', owner);
   }
 
-  const response = await apiRequest('/upload', {
+  return apiRequest('/upload', {
     method: 'POST',
     body: formData,
   });
-
-  return response;
 }
 
 async function listDocuments() {
   return apiRequest('/documents');
 }
 
-async function downloadDocument(id) {
+async function downloadDocument(id, fileName = 'documento') {
   const response = await fetch(`/api/documents/${id}/download`);
 
   if (!response.ok) {
@@ -51,7 +49,7 @@ async function downloadDocument(id) {
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = id;
+  anchor.download = fileName;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

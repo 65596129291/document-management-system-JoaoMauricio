@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import UploadComponent from './components/UploadComponent';
 import DocumentList from './components/DocumentList';
+import { downloadDocument, listDocuments } from './services/documentApi';
 
 const initialDocuments = [];
 
@@ -14,13 +15,7 @@ export default function App() {
     setError('');
 
     try {
-      const response = await fetch('/api/documents');
-
-      if (!response.ok) {
-        throw new Error('Erro ao carregar documentos.');
-      }
-
-      const data = await response.json();
+      const data = await listDocuments();
       setDocuments(data);
     } catch (loadError) {
       setError(loadError.message || 'Não foi possível carregar os documentos.');
@@ -35,21 +30,7 @@ export default function App() {
 
   async function handleDownload(documentId) {
     try {
-      const response = await fetch(`/api/documents/${documentId}/download`);
-
-      if (!response.ok) {
-        throw new Error('Não foi possível fazer o download do documento.');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = 'documento';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.URL.revokeObjectURL(url);
+      await downloadDocument(documentId, 'documento');
     } catch (downloadError) {
       setError(downloadError.message || 'Falha no download.');
     }

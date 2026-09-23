@@ -2,6 +2,29 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createDocument, getDocumentList, getDocumentForDownload } = require('../services/documentService');
 
+function sanitizeOriginalName(originalName = 'documento') {
+  const baseName = path.basename(originalName || 'documento');
+  const safeName = baseName
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return safeName || 'documento';
+}
+
+function ensureStoragePath(filePath) {
+  const storageRoot = path.resolve(__dirname, '..', '..', 'storage');
+  const resolvedPath = path.resolve(filePath);
+
+  if (resolvedPath !== storageRoot && !resolvedPath.startsWith(`${storageRoot}${path.sep}`)) {
+    const error = new Error('Arquivo fora do diretório permitido.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return resolvedPath;
+}
+
 function uploadDocument(req, res) {
   if (!req.file) {
     return res.status(400).json({ message: 'Arquivo não enviado.' });
@@ -9,7 +32,7 @@ function uploadDocument(req, res) {
 
   try {
     const document = createDocument({
-      originalName: req.file.originalname,
+      originalName: sanitizeOriginalName(req.file.originalname),
       size: req.file.size,
       owner: req.body.owner,
       filePath: req.file.path,
@@ -32,13 +55,18 @@ function listDocuments(req, res) {
 function downloadDocument(req, res) {
   try {
     const document = getDocumentForDownload(req.params.id);
+    const safeFilePath = ensureStoragePath(document.filePath);
 
-    if (!document.filePath || !fs.existsSync(document.filePath)) {
+    if (!safeFilePath || !fs.existsSync(safeFilePath)) {
       return res.status(404).json({ message: 'Arquivo não encontrado.' });
     }
 
-    return res.download(document.filePath, document.originalName);
+    return res.download(safeFilePath, sanitizeOriginalName(document.originalName));
   } catch (error) {
+    if (error.statusCode === 403) {
+      return res.status(403).json({ message: 'Acesso ao arquivo negado.' });
+    }
+
     if (error.statusCode === 404) {
       return res.status(404).json({ message: 'Documento não encontrado.' });
     }

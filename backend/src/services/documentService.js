@@ -1,6 +1,18 @@
 const crypto = require('node:crypto');
 const { addDocument, listDocuments, getDocumentById } = require('../repositories/documentRepository');
 
+function toPublicDocument(document) {
+  const { filePath, ...publicDocument } = document;
+  return publicDocument;
+}
+
+function toDownloadDocument(document) {
+  return {
+    ...toPublicDocument(document),
+    filePath: document.filePath,
+  };
+}
+
 function createDocument({ originalName, size, owner, filePath }) {
   const id = `doc-${crypto.randomUUID()}`;
   const uploadedAt = new Date().toISOString();
@@ -14,8 +26,7 @@ function createDocument({ originalName, size, owner, filePath }) {
     filePath,
   });
 
-  const { filePath: storedPath, ...publicDocument } = document;
-  return publicDocument;
+  return toPublicDocument(document);
 }
 
 function getDocumentList() {
@@ -24,17 +35,14 @@ function getDocumentList() {
 
 function getDocumentForDownload(id) {
   const document = getDocumentById(id);
+
   if (!document) {
     const error = new Error('Documento não encontrado');
     error.statusCode = 404;
     throw error;
   }
 
-  const { filePath, ...publicDocument } = document;
-  return {
-    ...publicDocument,
-    filePath,
-  };
+  return toDownloadDocument(document);
 }
 
 module.exports = {

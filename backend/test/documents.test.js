@@ -67,3 +67,19 @@ test('GET /api/documents/:id/download retorna o arquivo', async () => {
     assert.strictEqual(text, 'conteudo do download');
   });
 });
+
+test('POST /api/upload sanitiza nomes de arquivo com sequências de diretório', async () => {
+  await withServer(async (port) => {
+    const formData = new FormData();
+    formData.append('file', new Blob(['conteudo suspeito'], { type: 'text/plain' }), '../../malicioso.txt');
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    assert.strictEqual(response.status, 201, 'upload deve aceitar nome sanitizado');
+    const body = await response.json();
+    assert.strictEqual(body.originalName, 'malicioso.txt');
+  });
+});

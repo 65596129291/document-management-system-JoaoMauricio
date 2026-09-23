@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { uploadDocument } from '../services/documentApi';
 
 export default function UploadComponent({ onUploadSuccess }) {
   const [file, setFile] = useState(null);
@@ -18,24 +19,7 @@ export default function UploadComponent({ onUploadSuccess }) {
     setError('');
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: (() => {
-          const formData = new FormData();
-          formData.append('file', file);
-          if (owner) {
-            formData.append('owner', owner);
-          }
-          return formData;
-        })(),
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || 'Erro ao enviar o arquivo.');
-      }
-
-      const document = await response.json();
+      const document = await uploadDocument(file, owner);
       setFile(null);
       setOwner('');
       if (onUploadSuccess) {
